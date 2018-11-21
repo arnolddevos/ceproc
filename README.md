@@ -1,7 +1,12 @@
-# ceproc
+# What is this?
 
-*ceproc* is short for complex event processor, an old fashioned idea revisited here in the form of a datalog language.   
+The aim here is to develop a version of the datalog language for programs that continuously react to events in the environment and generate effects on the environment.  
 
-The concepts and a syntax are given [here](engine.md)
+# Isn't that Prolog?
 
-In short, datalog is extended with a time dimension, effects and aggregates.  The aggregates are over semilattices and are computed alongside facts as *parafacts*.
+It is not an aim to reinvent prolog. We want a purely declarative language that is not in itself Turing complete.
+
+# Why?
+
+It will be a better way to do realtime event processing and some forms of signal processing. 
+

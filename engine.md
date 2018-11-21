@@ -1,12 +1,56 @@
-# Basics
+# Preface: What is Datalog?
+
+[Datalog](https://en.wikipedia.org/wiki/Datalog) is a declarative programming language based on first order predicate logic.  It is not turing complete and datalog programs are guaranteed to terminate.  
+
+The following example introduces the basic terminology.  (If you are familiar, skip this section.)
+
+A program consists of _rules_ such as these:
+
+```
+ancestor(X, Y) :- parent(X, Y).
+ancestor(X, Y) :- parent(X, Z), ancestor(Z, Y).
+```
+
+A program operates on _facts_ such as:
+
+```
+parent(bill, mary).
+parent(mary, john).
+```
+
+Applying rules to facts produces derived facts. In this example, the fact  `ancestor(bill, john)` can be derived.
+
+Take the second rule above: `ancestor(X, Y) :- parent(X, Z), ancestor(Z, Y)`. It has these parts:
+
+* The term `ancestor(X, Y)` to the left of the `:-` is the _head_ of the rule.
+* The expression `parent(X, Z), ancestor(Z, Y)` on the right is the _formula_.
+* In the formula, each term `parent(X, Z)` and `ancestor(Z, Y)` is an _atom_.
+* The identifiers `ancestor` and `parent` are _predicates_.
+* The identifiers `X`, `Y` and `Z` are _variables_ which stand for values.
+
+A rule is read as an implication: if the predicates in the formula are true then the predicate in the head is true for a given set of bindings of the variables to values.
+
+A predicate with two arguments such as `parent(X, Y)` can be viewed an association between individuals. A predicate of one argument, for example `male(X)`, defines a class of individuals.  
+
+More generally, a predicate can have one or more arguments and can be viewed as a _relation_. 
+
+Any relational algebra expression can be written in datalog. Conversely, a recursive datalog rule such as the rule for `ancestor` cannot be expressed in (basic) relational algebra.  
+
+# Batch or Continuous
+
+Datalog programs are often conceived as queries.  A predicate is marked as the _goal_. The facts matching the goal are computed from facts in a database and the program terminates.  This is essentially a one-shot or batch operation.
+
+The aim here is to develop a version of datalog that continuously reacts to facts as they are observed in the environment.  The goals are replaced by actions applied to the environment.
+
+One challenge is that datalog is a purely delarative language. Facts may be derived in any order or any number of times from the same input.  This is addressed by making the concept of time explicit in facts and rules. 
+
+# The Time Dimension
 
 Starting with standard datalog concepts we add specializations for time and events:
 
   - An _event_ is a fact with a timestamp.  Every fact in this system is an event, either a supplied _input event_ or a _derived event_, derived via a rule.
 
   - In a rule, timestamps can be bound using a special syntax or omitted.  When omitted in a formula, the timestamp is free. When omitted from a rule head, the timestamp is a function of the timestamps of the events matching the formula. 
-
-  - A _guard_ is a condition that may be attached to a rule. A guard expression may reference variables but not bind them (unlike atoms). 
 
   - An _action_ is a query or goal with an associated side effect. The side effect is executed exactly once for each distinct event matching the goal. 
   
@@ -26,8 +70,12 @@ Naive, bottom-up evaluation is illustrated, which allows events to be processed 
         - Substitute variables with respective bindings
         - Let `t1 = max(t0, t)`
     - If `r1.formula` is empty 
-        - If the guard evaluates true emit `r1.head` as event `e1@t1`
+        - If the guard* evaluates true emit `r1.head` as event `e1@t1`
     - Else add `r1@t1` to the corpus
+
+## Guard*
+
+  - A _guard_ is a condition that may be attached to a rule. A guard expression may reference variables but not bind them (unlike atoms). 
 
 # Expiration
 
@@ -35,24 +83,31 @@ The stream of events is unbounded and, if the rules were applied to the entire h
 
 In mitigation, the concept of expiration is introduced.
 
-Each event and rule has a expiration time, `exp`, with the intention that `e@(t, exp)` is applicable in the time interval (`t`,  `exp`].  This is implemented as follows:
+Each event has a expiration time, `u`, with the intention that an event `e@time(t)@expires(u)` is applicable in the time interval (`t`,  `u`].  
 
-If `e@(t, exp)` matches `r@(t, exp)` producing `r1@(t1, exp1)` then `exp1 = min(e.exp, r.exp)` and `t1 = max(e.t, r.t)` or, assuming events arrive in time order, `t1 = e.t`.
+To enforce this, event expiration times are propagated to newly generated rules as  conditions.  
 
-Each rule is implicitly extended with the guard `e.t - skew < r.exp` which effectively expires the rule.   If this predicate fails for an event `e1` it will fail for an any subsequent event `e2` because `e1.t - skew < e2.t` for approximately ordered events. The rule can therefore be discarded.
+Consider a rule`r0@time(t0)@expires(u0)` that is matched by an event `e@time(t)@expires(u)` producing a new rule `r1@time(t1)@expires(u1)`. Then:
+
+1. `u1 = min(u, u0)` and `t1 = max(t, t0)` (expiration and timestamp propagation)
+2. `t < u0` (expiration testing)
+
+If `t >= u0 + skew` the rule can be removed entirely. The timestamp of every following event, `tn` is constrained by `tn + skew >= t`. Therefore `tn >= u0` and the expiration test (2) fails.
 
 # Timestamps as Parafacts
 
-The timestamp and expiration values in the foregoing are special cases of semilattices. That is, a partially ordered set with an idempotent, commutative, associative `merge` operation. When deriving a new rule, `r1@t1`, from `r@t` and `e0@t0` we can use `t1 = t0 merge t`.
+The timestamp and expiration values attached to events are special cases of a concept introduced here: the _parafact_.  Any semilattice type can be used as a parafact. That is, a partially ordered set with an idempotent, commutative, associative `merge` operation. 
 
 Examples:
 
-  - timestamps with with `merge` as minimum 
   - timestamps with with `merge` as maximum 
-  - provenance as a set of sources { s1, ... } and `merge` as union.
+  - expiration times with with `merge` as minimum 
+  - provenance as a set of sources { s1, ... } and `merge` as set union.
   - products of the above: (min timestamp, max timestamp, provenance)
 
-In general we allow any semilattice variable to be attached to a fact or rule.  These are called parafacts and are [defined here](latticework.md).
+Syntactically, predicates prefixed with `@` denote parafacts.  For example `@time(t)`. 
+
+Parafacts are described in detail [here](latticework.md).
 
 # Aggregation
 
@@ -64,21 +119,21 @@ p1(v1, v2) @average(v3) @max(v3) := p2(v1, v2, v3, v4) ;
 
 This rule produces a `p1` event for each distinct pair, `v1` and `v2` found in `p2` events. Aggregates of `v3` are computed over the group of `p2` events deriving a specific `p1` event.
 
-Predicates prefixed with `@` are parafacts.  Variables bound in the formula that appear in parafacts may not appear in the event (and visa versa).
+TBD: lattice type for computing averages.
 
 # Time Series
 
-Some events report state changes, for example `water_level(tank1, 25.0)@t1` and `water_level(tank1, 27.0)@t2` report changes in a water level over time.  
+Some events report state changes, for example `water_level(tank1, 25.0)@time(t1)` and `water_level(tank1, 27.0)@time(t2)` report changes in a water level over time.  
 
 Assuming `x` and `y` are free, the following are valid atoms:
 
-- `water_level(tank1, x)` has no timestamp predicate and matches each event in the water level time series. 
+- `water_level(tank1, x)` has no timestamp predicate and matches each event in the water level time series, binding the level to `x`. 
 
-- `water_level(tank1, x) @ time(y)` also matches each event in the series and binds the millisecond time of the event to `y`.
+- `water_level(tank1, x) @ time(y)` also matches each event in the series and binds the  time of the event to `y`.
 
-- `water_level(tank1, x) @ time(t)` matches the event with the given millisecond time `t`.
+- `water_level(tank1, x) @ time(t)` matches the event with the given time `t`.
 
-Aggregations can be applied to time series, for example:
+Aggregations can be applied to time series. For example this accumulates and average level for each tank, `x`:
 
 ```
 average_water_level(x) @ average(y) := water_level(x, y)

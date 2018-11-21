@@ -31,11 +31,13 @@ A rule produces a set of parafacts for each derived fact and its formula may mat
 
 # Deriving Parafacts
 
-Derived parafacts are written in the rule head. Values are written in terms of literals a variables bound in the formula. 
+Derived parafacts are written in the rule head in terms of variables bound in the formula. 
 
-Variables used in the derived fact and the derived parafacts are segregated.  A variable that appears in the derived fact cannot appear in a derived parafact (and visa versa).
+- the parafact value may be an expression involving more than one variable and/or literal.
 
-A given parafact predicate can appear in the rule head more than once.  In that case, the occurrences are merged.
+- a given variable must not appear in both the fact and one of its parafacts. 
+
+- a given parafact predicate can appear in the rule head more than once.  In that case, the occurrences are merged.
 
 # Matching Parafacts
 
