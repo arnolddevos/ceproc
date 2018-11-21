@@ -10,3 +10,5 @@ It is not an aim to reinvent prolog. We want a purely declarative language that 
 
 It will be a better way to do realtime event processing and some forms of signal processing. 
 
+More [here](engine.md).
+

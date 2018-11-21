@@ -18,16 +18,13 @@ A parafact may represent:
 
 # Structure
 
-A parafact, like a fact, is a tuple belonging to a predicate.  
+A parafact rides along beside a fact. It is a value belonging to a named set called a lattice hereafter. (This is a reference to the mathematical concept of a lattice.)
 
-However, each parafact predicate defines a partially order and a merge operation. The merge operation is commutative, associative and idempotent.
+A lattice defines a partial order and a merge operation. The merge operation is commutative, associative and idempotent. 
 
-In other words, a parafact predicate forms a semilattice. 
-
-Each predicate appears at most once in the set of parafacts associated with a fact.  
+At most one parafact belonging to a given lattice is associated with a given fact.  
 
 A rule produces a set of parafacts for each derived fact and its formula may match parafacts associated with antecedent facts. 
-
 
 # Deriving Parafacts
 
@@ -37,7 +34,7 @@ Derived parafacts are written in the rule head in terms of variables bound in th
 
 - a given variable must not appear in both the fact and one of its parafacts. 
 
-- a given parafact predicate can appear in the rule head more than once.  In that case, the occurrences are merged.
+- a given parafact lattice name can appear in the rule head more than once.  In that case, the occurrences are merged.
 
 # Matching Parafacts
 
@@ -47,6 +44,6 @@ A rule that matches parafacts may not be recursive.
 
 # Passing Parafacts
 
-An antecedent parafact whose predicate is not mentioned in the rule head is automatically passed to the derived fact. Parafacts with the same predicate are merged.
+An antecedent parafact whose lattice is not mentioned in the rule head is automatically passed to the derived fact. Parafacts with the same lattice are merged.
 
 A rule can suppress passing of parafacts for given parafact predicates.
