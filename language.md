@@ -42,7 +42,7 @@ Datalog programs are often conceived as queries.  A predicate is marked as the _
 
 The aim here is to develop a version of datalog that continuously reacts to facts as they are observed in the environment.  The goals are replaced by actions applied to the environment.
 
-One challenge is that datalog is a purely delarative language. Facts may be derived in any order or any number of times from the same input.  This is addressed by making the concept of time explicit in facts and rules. 
+One challenge is that datalog is a purely declarative language. Facts may be derived in any order or any number of times from the same input.  This is addressed by making the concept of time explicit in facts and rules. 
 
 # The Time Dimension
 
@@ -123,20 +123,18 @@ TBD: lattice type for computing averages.
 
 # Time Series
 
-Some events report state changes, for example `water_level(tank1, 25.0)@time(t1)` and `water_level(tank1, 27.0)@time(t2)` report changes in a water level over time.  
+Some events report state changes, for example `water_level("tank1", 25.0)@time(t1)` and `water_level("tank1", 27.0)@time(t2)` report changes in a water level over time.  
 
-Assuming `x` and `y` are free, the following are valid atoms:
+Assuming `x` is free and t is bound, the following are valid atoms:
 
-- `water_level(tank1, x)` has no timestamp predicate and matches each event in the water level time series, binding the level to `x`. 
+- `water_level("tank1", x)` has no timestamp predicate and matches each event in the water level time series for `tank1`, binding the level to `x`. 
 
-- `water_level(tank1, x) @ time(y)` also matches each event in the series and binds the  time of the event to `y`.
+- `water_level("tank1", x) @ time(t)` matches events with the time _at least_ `t`.
 
-- `water_level(tank1, x) @ time(t)` matches the event with the given time `t`.
-
-Aggregations can be applied to time series. For example this accumulates and average level for each tank, `x`:
+Aggregations can be applied to time series. For example this accumulates the maximum level for each tank, `x`:
 
 ```
-average_water_level(x) @ average(y) := water_level(x, y)
+maximum_water_level(tank) @ maximum(x) := water_level(tank, x)
 ```
 
 # Clocks and Resampling
@@ -146,8 +144,8 @@ The foregoing timestamp predicates can be used to with _clock_ events to resampl
 The atom `clock(offset, period)@time(y)` matches a clock event every `period` milliseconds and binds the time to a free variable `y`.  The first of these events has timestamp `offset`. Neither `period` nor `offset` may be free. 
 
 ```
-water_level_smoothed(tank1) @average(x) @time(tc-period/2) := 
-  water_level(tank1, x)@time(te) ^ clock(offset, period)@time(tc)
+water_level_smoothed(tank) @average(x) @time(tc-period/2) := 
+  water_level(tank, x)@time(te) ^ clock(offset, period)@time(tc)
   if te < tc ^ te >= tc-period
 ```
 
@@ -168,7 +166,7 @@ Pattern     ::= Application
 
 Atom        ::= Pattern { '@' Pattern | ~ Name }
 
-Guard       ::= Expr { ^ Expr }
+Guard       ::= Expr { '^' Expr }
 
 Formula     ::= Atom { '^' Atom } [ 'if' Guard ]
 
