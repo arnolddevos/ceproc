@@ -107,7 +107,7 @@ Examples:
 
 Syntactically, predicates prefixed with `@` denote parafacts.  For example `@time(t)`. 
 
-Parafacts are described in detail [here](latticework.md).
+Parafacts are described in detail [here](parafacts.md).
 
 # Aggregation
 
